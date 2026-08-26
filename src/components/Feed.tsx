@@ -11,21 +11,34 @@ export function Feed({
   onError: (message: string) => void;
 }) {
   const [runs, setRuns] = useState<FeedRun[] | null>(null);
+  const [pendingKudos, setPendingKudos] = useState<Set<number>>(new Set());
 
-  const load = useCallback(() => {
-    api<FeedRun[]>("/feed")
-      .then(setRuns)
-      .catch((e: Error) => onError(e.message));
-  }, [onError]);
+  const load = useCallback(
+    () =>
+      api<FeedRun[]>("/feed")
+        .then(setRuns)
+        .catch((e: Error) => onError(e.message)),
+    [onError],
+  );
 
-  useEffect(load, [load]);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const toggleKudos = async (run: FeedRun) => {
+    if (pendingKudos.has(run.id)) return;
+    setPendingKudos((prev) => new Set(prev).add(run.id));
     try {
       await api(`/runs/${run.id}/kudos`, { method: run.has_kudoed ? "DELETE" : "POST" });
-      load();
+      await load();
     } catch (e) {
       onError((e as Error).message);
+    } finally {
+      setPendingKudos((prev) => {
+        const next = new Set(prev);
+        next.delete(run.id);
+        return next;
+      });
     }
   };
 
@@ -60,7 +73,8 @@ export function Feed({
             <div className="card-actions">
               <button
                 className={`btn kudos${run.has_kudoed ? " given" : ""}`}
-                disabled={isOwnRun}
+                disabled={isOwnRun || pendingKudos.has(run.id)}
+                aria-pressed={run.has_kudoed}
                 title={isOwnRun ? "You hosted this run" : run.has_kudoed ? "Take back kudos" : "Give kudos"}
                 onClick={() => toggleKudos(run)}
               >
