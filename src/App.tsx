@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, getStoredUserId, storeUserId } from "./api";
+import { api, getCurrentUserId, setCurrentUserId } from "./api";
 import type { User } from "./types";
 import { avatarColor } from "./util";
 import { NamePicker } from "./components/NamePicker";
@@ -11,7 +11,7 @@ type Tab = "feed" | "clubs";
 
 export default function App() {
   const [users, setUsers] = useState<User[] | null>(null);
-  const [userId, setUserId] = useState<number | null>(getStoredUserId());
+  const [userId, setUserId] = useState<number | null>(getCurrentUserId());
   const [tab, setTab] = useState<Tab>("feed");
   const [clubId, setClubId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +30,7 @@ export default function App() {
   }, []);
 
   const pickUser = (id: number | null) => {
-    storeUserId(id);
+    setCurrentUserId(id);
     setUserId(id);
   };
 

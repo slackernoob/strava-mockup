@@ -1,8 +1,8 @@
 const USER_KEY = "runclub.userId";
 
-export function getStoredUserId(): number | null {
+function readStoredUserId(): number | null {
   try {
-    const raw = localStorage.getItem(USER_KEY);
+    const raw = sessionStorage.getItem(USER_KEY);
     const id = Number(raw);
     return raw && Number.isInteger(id) && id > 0 ? id : null;
   } catch {
@@ -10,12 +10,22 @@ export function getStoredUserId(): number | null {
   }
 }
 
-export function storeUserId(id: number | null): void {
+// The identity used on requests lives in memory so it can never diverge from
+// the user the UI is showing. sessionStorage only re-hydrates it on reload;
+// being per-tab, it can't bleed between tabs the way localStorage does.
+let currentUserId: number | null = readStoredUserId();
+
+export function getCurrentUserId(): number | null {
+  return currentUserId;
+}
+
+export function setCurrentUserId(id: number | null): void {
+  currentUserId = id;
   try {
-    if (id === null) localStorage.removeItem(USER_KEY);
-    else localStorage.setItem(USER_KEY, String(id));
+    if (id === null) sessionStorage.removeItem(USER_KEY);
+    else sessionStorage.setItem(USER_KEY, String(id));
   } catch {
-    // storage unavailable — identity just won't persist across reloads
+    // storage unavailable — identity just won't survive a reload
   }
 }
 
@@ -26,8 +36,7 @@ export async function api<T>(
   options: { method?: string; body?: unknown } = {},
 ): Promise<T> {
   const headers: Record<string, string> = {};
-  const userId = getStoredUserId();
-  if (userId) headers["X-User-Id"] = String(userId);
+  if (currentUserId) headers["X-User-Id"] = String(currentUserId);
   if (options.body !== undefined) headers["Content-Type"] = "application/json";
 
   const res = await fetch(`/api${path}`, {
