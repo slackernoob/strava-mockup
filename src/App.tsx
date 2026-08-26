@@ -4,6 +4,7 @@ import type { User } from "./types";
 import { avatarColor } from "./util";
 import { NamePicker } from "./components/NamePicker";
 import { Feed } from "./components/Feed";
+import { Clubs } from "./components/Clubs";
 
 type Tab = "feed" | "clubs";
 
@@ -76,7 +77,7 @@ export default function App() {
         {tab === "feed" && <Feed currentUserId={currentUser.id} onError={showError} />}
         {tab === "clubs" &&
           (clubId === null ? (
-            <p className="muted">Clubs coming soon.</p>
+            <Clubs onOpen={setClubId} onError={showError} />
           ) : (
             <p className="muted">Club detail coming soon.</p>
           ))}
