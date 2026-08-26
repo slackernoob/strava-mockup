@@ -5,6 +5,7 @@ import { avatarColor } from "./util";
 import { NamePicker } from "./components/NamePicker";
 import { Feed } from "./components/Feed";
 import { Clubs } from "./components/Clubs";
+import { ClubDetail } from "./components/ClubDetail";
 
 type Tab = "feed" | "clubs";
 
@@ -79,7 +80,12 @@ export default function App() {
           (clubId === null ? (
             <Clubs onOpen={setClubId} onError={showError} />
           ) : (
-            <p className="muted">Club detail coming soon.</p>
+            <ClubDetail
+              clubId={clubId}
+              currentUserId={currentUser.id}
+              onBack={() => setClubId(null)}
+              onError={showError}
+            />
           ))}
       </main>
     </div>
