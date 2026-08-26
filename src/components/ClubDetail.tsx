@@ -57,8 +57,13 @@ export function ClubDetail({
 
   const rename = async (e: FormEvent) => {
     e.preventDefault();
-    await call(() => api(`/clubs/${club.id}`, { method: "PATCH", body: { name: newName } }));
-    setRenaming(false);
+    try {
+      await api(`/clubs/${club.id}`, { method: "PATCH", body: { name: newName } });
+      setRenaming(false);
+      load();
+    } catch (err) {
+      onError((err as Error).message);
+    }
   };
 
   const deleteClub = async () => {
