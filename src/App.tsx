@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api, getStoredUserId, storeUserId } from "./api";
 import type { User } from "./types";
 import { avatarColor } from "./util";
 import { NamePicker } from "./components/NamePicker";
+import { Feed } from "./components/Feed";
 
 type Tab = "feed" | "clubs";
 
@@ -12,11 +13,18 @@ export default function App() {
   const [tab, setTab] = useState<Tab>("feed");
   const [clubId, setClubId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const errorTimer = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     api<User[]>("/users")
       .then(setUsers)
       .catch((e: Error) => setError(e.message));
+  }, []);
+
+  const showError = useCallback((message: string) => {
+    setError(message);
+    window.clearTimeout(errorTimer.current);
+    errorTimer.current = window.setTimeout(() => setError(null), 4000);
   }, []);
 
   const pickUser = (id: number | null) => {
@@ -65,7 +73,7 @@ export default function App() {
         </button>
       </nav>
       <main>
-        {tab === "feed" && <p className="muted">Feed coming soon.</p>}
+        {tab === "feed" && <Feed currentUserId={currentUser.id} onError={showError} />}
         {tab === "clubs" &&
           (clubId === null ? (
             <p className="muted">Clubs coming soon.</p>
