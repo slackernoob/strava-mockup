@@ -52,12 +52,13 @@ runs.post("/clubs/:clubId/runs", async (c) => {
     return c.json({ error: "Distance must be a positive number." }, 400);
   }
 
-  const run = await c.env.DB.prepare(
-    `INSERT INTO runs (club_id, host_id, title, starts_at, location, distance_km, pace, description)
-     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
-     RETURNING id`,
-  )
-    .bind(
+  // Batch so the run and its host's attendance commit atomically;
+  // last_insert_rowid() resolves to the run inserted in the same session.
+  const [inserted] = await c.env.DB.batch([
+    c.env.DB.prepare(
+      `INSERT INTO runs (club_id, host_id, title, starts_at, location, distance_km, pace, description)
+       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)`,
+    ).bind(
       clubId,
       userId,
       title,
@@ -66,12 +67,12 @@ runs.post("/clubs/:clubId/runs", async (c) => {
       distance,
       body.pace?.trim() || null,
       body.description?.trim() || null,
-    )
-    .first<{ id: number }>();
-  await c.env.DB.prepare("INSERT INTO run_attendees (run_id, user_id) VALUES (?1, ?2)")
-    .bind(run!.id, userId)
-    .run();
-  return c.json({ id: run!.id }, 201);
+    ),
+    c.env.DB.prepare(
+      "INSERT INTO run_attendees (run_id, user_id) VALUES (last_insert_rowid(), ?1)",
+    ).bind(userId),
+  ]);
+  return c.json({ id: inserted.meta.last_row_id }, 201);
 });
 
 async function loadRun(db: D1Database, runId: number) {
