@@ -27,15 +27,15 @@ clubs.post("/", async (c) => {
   if (!name || name.length > 60) {
     return c.json({ error: "Club name must be 1-60 characters." }, 400);
   }
-  const club = await c.env.DB.prepare(
-    "INSERT INTO clubs (name, created_by) VALUES (?1, ?2) RETURNING id, name, created_by",
-  )
-    .bind(name, userId)
-    .first<{ id: number; name: string; created_by: number }>();
-  await c.env.DB.prepare("INSERT INTO club_members (club_id, user_id) VALUES (?1, ?2)")
-    .bind(club!.id, userId)
-    .run();
-  return c.json(club, 201);
+  // Batch so the club and its creator's membership commit atomically;
+  // last_insert_rowid() resolves to the club inserted in the same session.
+  const [inserted] = await c.env.DB.batch([
+    c.env.DB.prepare("INSERT INTO clubs (name, created_by) VALUES (?1, ?2)").bind(name, userId),
+    c.env.DB.prepare(
+      "INSERT INTO club_members (club_id, user_id) VALUES (last_insert_rowid(), ?1)",
+    ).bind(userId),
+  ]);
+  return c.json({ id: inserted.meta.last_row_id, name, created_by: userId }, 201);
 });
 
 clubs.get("/:id", async (c) => {
