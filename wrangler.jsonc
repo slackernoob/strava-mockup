@@ -15,7 +15,7 @@
     {
       "binding": "DB",
       "database_name": "strava-mockup-db",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "c0b97a5c-938a-4fb9-ad55-e4072a6b08eb",
       "migrations_dir": "migrations"
     }
   ]
